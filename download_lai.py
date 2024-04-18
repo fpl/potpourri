@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 #
 # This script is used to download LAI 10m.
-# Note that this depends on a my hda package for ECMWF provided package.
+#
+# Note that this depends on my fork of the ECMWF provided package, to avoid
+# re-downloading all files at every run.
 #
 
 from hda import Client, Configuration
