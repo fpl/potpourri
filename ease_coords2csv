@@ -1,0 +1,25 @@
+#!/usr/bin/perl
+#
+# This is a simple script to converte an EASE2 grid set of coords
+# from binary to ASCII format. 
+# See https://nsidc.org/data/user-resources/help-center/guide-ease-grids
+# for more information.
+#
+
+local $/=undef;
+
+die qq/$0 long lat/ if $#ARGV<1; 
+
+open(LONG, $ARGV[0]) or die("Cannot open long file");
+my @long = unpack("d*", <LONG>);
+close (LONG);
+
+open(LAT, $ARGV[1]) or die("Cannot open lat file");
+my @lat = unpack("d*", <LAT>);
+close (LAT);
+
+for $i (0..$#long) {
+	$lng = $long[$i];
+	$lt = $lat[$i];
+	printf ("%.9f|%.9f\n", $lng, $lt);
+}
