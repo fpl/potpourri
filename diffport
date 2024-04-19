@@ -1,0 +1,211 @@
+#!/usr/bin/perl -w
+
+# diffport - port a diff to a newer version of the original
+#
+# Copyright (C) 2001-2002  Transmeta Corporation
+#
+# written by Daniel Quinlan <quinlan@transmeta.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+$prog = $0;
+$prog =~ s@.*/@@;
+
+use Getopt::Std;
+use vars qw($opt_h $opt_p);
+
+getopts("ho:p:t");
+
+if ($opt_h || $#ARGV < 0) {
+	usage(0);
+}
+if (! $opt_o) {
+    # create the original directory
+    $orig = &unpack_orig;
+}
+else {
+    # original directory is on command line
+    $orig = $opt_o;
+}
+
+# create new diffs
+&create_new;
+
+sub unpack_orig {
+    my $dir;
+    my $orig;
+
+    # will run over multiple archives (needed for XFree86)
+    foreach $arg (@ARGV) {
+	if ($arg =~ m@(\.tar\.gz|\.tgz)$@) {
+	    $dir = extract_tar($arg, "gzip");
+	}
+	elsif ($arg =~ m@(\.tar\.bz2|\.tbz2?)$@) {
+	    $dir = extract_tar($arg, "bzip2");
+	}
+    }
+    die "$prog: couldn't figure out original directory" unless $dir;
+
+    $orig = $dir . '_orig';
+
+    if (! $opt_t) {
+	if (!rename($dir, $orig)) {
+	    die "$prog: rename of $dir to $orig failed: $!";
+	}
+    }
+
+    if ($opt_p) {
+	apply_diff($opt_p, $orig);
+    }
+
+    return $orig;
+}
+
+sub create_new {
+    my $dir;			# new dir
+
+    foreach $patch (@ARGV) {
+	next unless $patch =~ m@(\.diff|\.patch)(.gz)?@;
+	if (defined($opt_p) && $patch eq $opt_p) {
+	    next;
+	}
+
+	# will run over multiple archives (needed for XFree86)
+	foreach $arg (@ARGV) {
+	    if ($arg =~ m@(\.tar\.gz|\.tgz)$@) {
+		$dir = extract_tar($arg, "gzip");
+	    }
+	    elsif ($arg =~ m@(\.tar\.bz2|\.tbz2?)$@) {
+		$dir = extract_tar($arg, "bzip2");
+	    }
+	}
+	die "$prog: couldn't figure out original directory" unless $dir;
+
+	if ($opt_p) {
+	    apply_diff($opt_p, $dir);
+	}
+
+	apply_diff($patch, $dir);
+
+	$diff = $patch;
+	$diff =~ s@.*/@@;
+	$diff .= '_new';
+
+	print "diff: creating $diff from $orig to $dir\n";
+	system("diff -urN $orig $dir > $diff");
+	if (($? >> 8) == 0) {
+	    warn "diff: no differences were found (patch applied already?)\n";
+	}
+	elsif (($? >> 8) == 2) {
+	    die "$prog: diff had serious trouble\n";
+	}
+
+	my_system("rm -rf $dir");
+    }
+}
+
+sub extract_tar {
+    my ($arg, $z) = @_;
+    my $dir = 0;
+
+    $z = "z" if $z eq "gzip";
+    $z = "I" if $z eq "bzip2";
+
+    print "extract: file $arg\n";
+    if ($opt_t) {
+	open(TAR, "tar tf$z $arg |") or die "$prog: tar failed";
+    }
+    else {
+	open(TAR, "tar xvf$z $arg |") or die "$prog: tar failed";
+    }
+    while(<TAR>) {
+	if (!$dir) {
+	    chomp($dir = $_);
+	    $dir =~ s@^\./@@g;
+	    $dir =~ s@/.*@@;
+	}
+    }
+    close(TAR);
+    print "extract: directory $dir\n";
+    return $dir;
+}
+
+sub apply_diff {
+    my ($patch, $dir) = @_;
+    my $cat;
+    my $log;
+    my $exit;
+
+    return unless $patch =~ m@(\.diff|\.patch)(\.gz|\.bz2)?@;
+
+    if ($+ eq ".gz") {
+	$cat = "zcat $patch";
+    }
+    elsif ($+ eq ".bz2") {
+	$cat = "bzcat $patch";
+    }
+    else {
+	$cat = "cat $patch";
+    }
+
+    printf("patch: %sapplying $patch in $dir\n",
+	   ((defined($opt_p) && $patch eq $opt_p) ? "pre-" : ""));
+
+    $log = $patch;
+    $log =~ s@.*/@@;
+    $log .= '_log';
+
+    system("$cat | patch -d $dir -p1 -E --no-backup-if-mismatch > $log 2>&1");
+    if (($? >> 8) == 1) {
+	warn "patch: patch could not apply some hunks\n";
+    }
+    elsif (($? >> 8) == 2) {
+	die "$prog: patch had serious trouble\n";
+    }
+}
+
+sub my_system
+{
+    my @args = @_;
+
+    if (!$opt_t) {
+	if (system(@args) != 0) {
+	    warn "system @args failed: $?\n";
+	}
+    }
+}
+
+sub usage {
+	$status = shift;
+
+	$out = $status ? STDERR : STDOUT;
+	print $out <<EOF;
+usage: $prog [options] [file ...]
+
+port a diff to a newer version of the original tarball(s)
+
+Filenames (except for option arguments) that look like diffs or
+patches are assumed to be patches to be ported.
+
+Filenames (except for option arguments) that look like tarballs are
+assumed to be originals (that extract to the same root directory).
+
+ -h         print this help
+ -o dir     original directory exists (save time on additional invocations)
+ -p diff    pre-apply diff to original archive (makes it part of the original)
+ -t         test only, don't do
+EOF
+	exit($status);
+}

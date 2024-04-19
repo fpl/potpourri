@@ -8,3 +8,7 @@ Mixed scripts of doubtful usefulness written in deplorable languages for daredev
  - `ease_coords2csv` - convert binary EASE2 grid coords to their ASCII form.
  - `rgb2idx.py` - sort of rgb2pct.py without dithering for a limited range of colors.
  - `get_saocom_acqdate.sh` - a simple script to get acquisition dates from a batch of SAOCOM files.
+ - `create_manifest` - a simple script to create a manifest file for a directory with MD5SUMs.
+ - `diffsplit` - split a unified diff in multiple patches. This is not splitdiff!
+ - `diffport` - port a patch to a new version of a tarball.
+ - `extract_p7m.sh` - extract a P7M digital signed file.
