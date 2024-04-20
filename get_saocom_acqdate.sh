@@ -9,5 +9,5 @@ then
     exit 255
 fi
 
-find "$1" -name '*.xemt' -exec awk 'BEGIN {FS=""; at=0} /<acquisitionTime>/ {at=1} /<\/acquisitionTime>/ {at=0} /startTime/ {if (at!=0) {gsub(/ /,"",$0); print FILENAME, substr($0,12,10)}}' {} \;
+find "$1" -name '*.xemt' -exec awk 'BEGIN {FS=""} /<acquisitionTime>/ {at=1} /<\/acquisitionTime>/ {at=0} /startTime/ {if (at) {gsub(/ /,"",$0); print FILENAME, substr($0,12,10)}}' {} \;
 
