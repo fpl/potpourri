@@ -5,6 +5,7 @@ Mixed scripts of doubtful usefulness written in deplorable languages for daredev
  - `smap/` some shell simple scripts to get daily SMAP L3/4 for a few years and until today.
  - `download_lai.py` - a simple script to download daily 10m LAI maps for any day and until today.
  - `create_ndvi.sh` - a simple script to create NDVI from Landsat by using PKTools.
+ - `GDALCalcNDVI.py` - a simple Python script for creating NDVI from Landsat.
  - `ease_coords2csv` - convert binary EASE2 grid coords to their ASCII form.
  - `rgb2idx.py` - sort of rgb2pct.py without dithering for a limited range of colors.
  - `get_saocom_acqdate.sh` - a simple script to get acquisition dates from a batch of SAOCOM files.
@@ -12,3 +13,4 @@ Mixed scripts of doubtful usefulness written in deplorable languages for daredev
  - `diffsplit` - split a unified diff in multiple patches. This is not splitdiff!
  - `diffport` - port a patch to a new version of a tarball.
  - `extract_p7m.sh` - extract a P7M digital signed file.
+ - `cert_tool` - The TJ's edition for cert_tool to manage SSL certs.
